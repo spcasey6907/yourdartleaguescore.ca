@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dart League Scoring App</title>
+<style>body{font-family:Arial,sans-serif;background:#111;color:#eee;margin:0;display:flex;height:100vh}#leftPanel{width:340px;background:#222;padding:10px;box-sizing:border-box;overflow-y:auto}#mainPanel{flex:1;padding:10px;box-sizing:border-box}h2,h3{margin:8px 0}select,button,input{margin:4px 0;padding:4px 6px;font-size:14px}input{width:95%;box-sizing:border-box;background:#111;color:#eee;border:1px solid #555}.name-grid{display:grid;grid-template-columns:1fr;gap:2px;margin-bottom:6px}.scoreboard{display:flex;justify-content:space-between;margin-top:10px}.team-score{flex:1;margin:0 5px;background:#000;border:2px solid #555;text-align:center;padding:10px}.active-team{border-color:#0f0}.team-score .score{font-size:48px;font-weight:bold}.players{display:flex;justify-content:space-between;margin-top:10px}.player-card{flex:1;margin:0 5px;border:1px solid #555;padding:6px;background:#181818}.player-card h4{margin:4px 0}.stats{font-size:12px;margin-top:4px}#numericPad{display:grid;grid-template-columns:repeat(3,1fr);grid-gap:4px;margin-top:10px}#numericPad button{font-size:16px;padding:10px;background:#333;color:#eee;border:1px solid #555;cursor:pointer}#numericPad button:hover{background:#555}#currentInput,#roundInfo{font-size:18px;margin-top:6px;text-align:center;padding:4px;background:#000;border:1px solid #555}#csvArea{width:100%;height:120px;margin-top:8px;font-size:11px}</style>
+</head>
+<body>
+<div id="leftPanel">
+<h3>Setup</h3>
+<label>Team A:<select id="teamASelect"></select></label><br>
+<div class="name-grid"><input id="teamAPlayer1" placeholder="Team A Player 1"><input id="teamAPlayer2" placeholder="Team A Player 2"><input id="teamAPlayer3" placeholder="Team A Player 3"></div>
+<label>Team B:<select id="teamBSelect"></select></label><br>
+<div class="name-grid"><input id="teamBPlayer1" placeholder="Team B Player 1"><input id="teamBPlayer2" placeholder="Team B Player 2"><input id="teamBPlayer3" placeholder="Team B Player 3"></div>
+<label>First Leg Starter:<select id="firstStarter"><option value="A">Team A - closest to bull</option><option value="B">Team B - closest to bull</option></select></label><br>
+<button id="randomTeamsBtn">Random Teams</button>
+<button id="startMatchBtn">Start 601 Leg</button>
+<button id="nextLegBtn">Start Next Leg</button>
+<h3>Numeric Pad</h3>
+<div id="currentInput">Dart Score: 0</div>
+<div id="roundInfo">Turn Total: 0 / Darts: 0 of 3</div>
+<div id="numericPad">
+<button data-val="1">1</button><button data-val="2">2</button><button data-val="3">3</button>
+<button data-val="4">4</button><button data-val="5">5</button><button data-val="6">6</button>
+<button data-val="7">7</button><button data-val="8">8</button><button data-val="9">9</button>
+<button data-val="0">0</button><button data-val="25">Outer Bull (25)</button><button data-val="50">Inner Bull (50)</button>
+<button id="clearBtn">Clear</button><button id="doubleBtn">Double</button><button id="tripleBtn">Triple</button>
+<button id="enterBtn">Enter Dart</button>
+</div>
+<div id="controls"><button id="exportCsvBtn">Export CSV</button></div>
+<div id="gameInfo"></div>
+<h3>CSV Data</h3><textarea id="csvArea" readonly></textarea>
+</div>
+<div id="mainPanel">
+<h2>Dart League Scoreboard</h2>
+<div class="scoreboard">
+<div class="team-score" id="teamABlock"><h2 id="teamAName">Team A</h2><div class="score" id="teamAScore">0</div></div>
+<div class="team-score" id="teamBBlock"><h2 id="teamBName">Team B</h2><div class="score" id="teamBScore">0</div></div>
+</div>
+<h3>Players</h3>
+<div class="players">
+<div class="player-card" id="playerCard0"><h4 id="playerName0">Player 1</h4><div>Team: <span id="playerTeam0"></span></div><div class="stats">Darts Thrown: <span id="playerDarts0">0</span><br>Total Score: <span id="playerTotal0">0</span><br>Avg / Dart: <span id="playerAvg0">0.00</span></div></div>
+<div class="player-card" id="playerCard1"><h4 id="playerName1">Player 2</h4><div>Team: <span id="playerTeam1"></span></div><div class="stats">Darts Thrown: <span id="playerDarts1">0</span><br>Total Score: <span id="playerTotal1">0</span><br>Avg / Dart: <span id="playerAvg1">0.00</span></div></div>
+<div class="player-card" id="playerCard2"><h4 id="playerName2">Player 3</h4><div>Team: <span id="playerTeam2"></span></div><div class="stats">Darts Thrown: <span id="playerDarts2">0</span><br>Total Score: <span id="playerTotal2">0</span><br>Avg / Dart: <span id="playerAvg2">0.00</span></div></div>
+</div>
+<div class="players">
+<div class="player-card" id="playerCard3"><h4 id="playerName3">Player 4</h4><div>Team: <span id="playerTeam3"></span></div><div class="stats">Darts Thrown: <span id="playerDarts3">0</span><br>Total Score: <span id="playerTotal3">0</span><br>Avg / Dart: <span id="playerAvg3">0.00</span></div></div>
+<div class="player-card" id="playerCard4"><h4 id="playerName4">Player 5</h4><div>Team: <span id="playerTeam4"></span></div><div class="stats">Darts Thrown: <span id="playerDarts4">0</span><br>Total Score: <span id="playerTotal4">0</span><br>Avg / Dart: <span id="playerAvg4">0.00</span></div></div>
+<div class="player-card" id="playerCard5"><h4 id="playerName5">Player 6</h4><div>Team: <span id="playerTeam5"></span></div><div class="stats">Darts Thrown: <span id="playerDarts5">0</span><br>Total Score: <span id="playerTotal5">0</span><br>Avg / Dart: <span id="playerAvg5">0.00</span></div></div>
+</div></div>
+<script>
+const NUM_TEAMS=30,PLAYERS_PER_TEAM=3,STARTING_SCORE=601;
+const teams=[];
+for(let t=1;t<=NUM_TEAMS;t++){const team={id:t,name:"Team "+t,players:[]};for(let p=1;p<=PLAYERS_PER_TEAM;p++){team.players.push({id:(t-1)*PLAYERS_PER_TEAM+p,name:"T"+t+" P"+p});}teams.push(team);}
+const teamASelect=document.getElementById("teamASelect"),teamBSelect=document.getElementById("teamBSelect"),firstStarterSelect=document.getElementById("firstStarter"),randomTeamsBtn=document.getElementById("randomTeamsBtn"),startMatchBtn=document.getElementById("startMatchBtn"),nextLegBtn=document.getElementById("nextLegBtn"),teamANameEl=document.getElementById("teamAName"),teamBNameEl=document.getElementById("teamBName"),teamAScoreEl=document.getElementById("teamAScore"),teamBScoreEl=document.getElementById("teamBScore"),teamABlock=document.getElementById("teamABlock"),teamBBlock=document.getElementById("teamBBlock"),gameInfoEl=document.getElementById("gameInfo"),currentInputEl=document.getElementById("currentInput"),roundInfoEl=document.getElementById("roundInfo"),numericPad=document.getElementById("numericPad"),clearBtn=document.getElementById("clearBtn"),doubleBtn=document.getElementById("doubleBtn"),tripleBtn=document.getElementById("tripleBtn"),enterBtn=document.getElementById("enterBtn"),exportCsvBtn=document.getElementById("exportCsvBtn"),csvArea=document.getElementById("csvArea");
+const teamANameInputs=[document.getElementById("teamAPlayer1"),document.getElementById("teamAPlayer2"),document.getElementById("teamAPlayer3")];
+const teamBNameInputs=[document.getElementById("teamBPlayer1"),document.getElementById("teamBPlayer2"),document.getElementById("teamBPlayer3")];
+let matchState={teamA:null,teamB:null,legNumber:1,teamAScore:STARTING_SCORE,teamBScore:STARTING_SCORE,currentTeam:"A",firstStarter:"A",currentPlayerInTeamIndex:0,currentPlayerDarts:[],players:[],csvRows:[],matchId:Date.now(),gameOver:false};
+let currentInput=0,multiplier=1;
+function populateTeamSelects(){teams.forEach(team=>{const optA=document.createElement("option");optA.value=team.id;optA.textContent=team.name;teamASelect.appendChild(optA);const optB=document.createElement("option");optB.value=team.id;optB.textContent=team.name;teamBSelect.appendChild(optB);});}
+populateTeamSelects();
+function applyPlayerInputNames(team,inputList){team.players.forEach((player,index)=>{const typedName=inputList[index].value.trim();player.name=typedName||player.name;});}
+randomTeamsBtn.addEventListener("click",()=>{const teamA=Math.floor(Math.random()*NUM_TEAMS)+1;let teamB=Math.floor(Math.random()*NUM_TEAMS)+1;while(teamB===teamA){teamB=Math.floor(Math.random()*NUM_TEAMS)+1;}teamASelect.value=teamA;teamBSelect.value=teamB;});
+startMatchBtn.addEventListener("click",startMatch);
+nextLegBtn.addEventListener("click",startNextLeg);
+function startMatch(){const teamAId=parseInt(teamASelect.value,10),teamBId=parseInt(teamBSelect.value,10);if(!teamAId||!teamBId||teamAId===teamBId){alert("Select two different teams.");return;}matchState.teamA=JSON.parse(JSON.stringify(teams.find(t=>t.id===teamAId)));matchState.teamB=JSON.parse(JSON.stringify(teams.find(t=>t.id===teamBId)));applyPlayerInputNames(matchState.teamA,teamANameInputs);applyPlayerInputNames(matchState.teamB,teamBNameInputs);matchState.matchId=Date.now();matchState.legNumber=1;matchState.firstStarter=firstStarterSelect.value;buildPlayers();startLeg(matchState.firstStarter);}
+function buildPlayers(){matchState.players=[];matchState.teamA.players.forEach(p=>matchState.players.push({team:"A",teamName:matchState.teamA.name,id:p.id,name:p.name,dartsThrown:0,totalScore:0}));matchState.teamB.players.forEach(p=>matchState.players.push({team:"B",teamName:matchState.teamB.name,id:p.id,name:p.name,dartsThrown:0,totalScore:0}));}
+function startLeg(starter){matchState.teamAScore=STARTING_SCORE;matchState.teamBScore=STARTING_SCORE;matchState.currentTeam=starter;matchState.currentPlayerInTeamIndex=0;matchState.currentPlayerDarts=[];matchState.gameOver=false;resetInput();updateAll();}
+function startNextLeg(){if(!matchState.teamA||!matchState.teamB){alert("Start the first leg first.");return;}matchState.legNumber+=1;matchState.firstStarter=matchState.firstStarter==="A"?"B":"A";startLeg(matchState.firstStarter);}
+function getCurrentTeamScoreKey(){return matchState.currentTeam==="A"?"teamAScore":"teamBScore";}
+function getCurrentTeam(){return matchState.currentTeam==="A"?matchState.teamA:matchState.teamB;}
+function getCurrentTeamPlayers(){return matchState.players.filter(p=>p.team===matchState.currentTeam);}
+function getCurrentPlayer(){const teamPlayers=getCurrentTeamPlayers();return teamPlayers[matchState.currentPlayerInTeamIndex]||teamPlayers[0];}
+function advanceTurn(){matchState.currentTeam=matchState.currentTeam==="A"?"B":"A";matchState.currentPlayerInTeamIndex=(matchState.currentPlayerInTeamIndex+1)%PLAYERS_PER_TEAM;matchState.currentPlayerDarts=[];resetInput();updateAll();}
+function updateAll(){updateScoreboard();updatePlayerCards();updateGameInfo();updateRoundInfo();}
+function updateScoreboard(){teamANameEl.textContent=matchState.teamA?matchState.teamA.name:"Team A";teamBNameEl.textContent=matchState.teamB?matchState.teamB.name:"Team B";teamAScoreEl.textContent=matchState.teamAScore;teamBScoreEl.textContent=matchState.teamBScore;teamABlock.classList.toggle("active-team",matchState.currentTeam==="A"&&!matchState.gameOver);teamBBlock.classList.toggle("active-team",matchState.currentTeam==="B"&&!matchState.gameOver);}
+function updatePlayerCards(){for(let i=0;i<6;i++){const player=matchState.players[i];const nameEl=document.getElementById("playerName"+i),teamEl=document.getElementById("playerTeam"+i),dartsEl=document.getElementById("playerDarts"+i),totalEl=document.getElementById("playerTotal"+i),avgEl=document.getElementById("playerAvg"+i),cardEl=document.getElementById("playerCard"+i);if(player){nameEl.textContent=player.name;teamEl.textContent=player.teamName;dartsEl.textContent=player.dartsThrown;totalEl.textContent=player.totalScore;avgEl.textContent=player.dartsThrown>0?(player.totalScore/player.dartsThrown).toFixed(2):"0.00";const currentPlayer=getCurrentPlayer();cardEl.style.borderColor=currentPlayer&&player.id===currentPlayer.id&&!matchState.gameOver?"#0f0":"#555";}else{nameEl.textContent="Player "+(i+1);teamEl.textContent="";dartsEl.textContent="0";totalEl.textContent="0";avgEl.textContent="0.00";cardEl.style.borderColor="#555";}}}
+function updateGameInfo(){if(matchState.gameOver)return;const team=getCurrentTeam();const player=getCurrentPlayer();gameInfoEl.textContent=team&&player?"Leg "+matchState.legNumber+" | Current Team: "+team.name+" | Current Player: "+player.name+" | Throw up to 3 darts, then record the turn.":"Start a leg to begin.";}
+function updateRoundInfo(){const turnTotal=matchState.currentPlayerDarts.reduce((sum,d)=>sum+d,0);roundInfoEl.textContent="Turn Total: "+turnTotal+" / Darts: "+matchState.currentPlayerDarts.length+" of 3";}
+function resetInput(){currentInput=0;multiplier=1;updateInputDisplay();}
+function updateInputDisplay(){const displayVal=currentInput*multiplier;currentInputEl.textContent="Dart Score: "+displayVal+(multiplier===2?" (Double)":multiplier===3?" (Triple)":"");}
+numericPad.addEventListener("click",e=>{const val=e.target.getAttribute("data-val");if(!val)return;const num=parseInt(val,10);if(num===25||num===50){currentInput=num;multiplier=1;}else{currentInput=currentInput*10+num;}updateInputDisplay();});
+clearBtn.addEventListener("click",resetInput);doubleBtn.addEventListener("click",()=>{multiplier=2;updateInputDisplay();});tripleBtn.addEventListener("click",()=>{multiplier=3;updateInputDisplay();});enterBtn.addEventListener("click",recordDart);
+function recordDart(){if(matchState.gameOver||!matchState.teamA||!matchState.teamB)return;if(matchState.currentPlayerDarts.length>=3){alert("This turn already has 3 darts recorded.");return;}const dartScore=currentInput*multiplier;if(dartScore>180){alert("Entered dart total cannot be greater than 180.");resetInput();return;}if(dartScore<0){alert("Enter a valid dart score.");resetInput();return;}matchState.currentPlayerDarts.push(dartScore);const player=getCurrentPlayer();if(player){player.dartsThrown+=1;player.totalScore+=dartScore;}resetInput();updateAll();if(matchState.currentPlayerDarts.length===3){finishTurn();}}
+function finishTurn(){const player=getCurrentPlayer();const team=getCurrentTeam();const scoreKey=getCurrentTeamScoreKey();const before=matchState[scoreKey];const turnTotal=matchState.currentPlayerDarts.reduce((sum,d)=>sum+d,0);let after=before-turnTotal;let result="";if(after<0||after===1){after=before;result="Bust";}else if(after===0){result="Win";matchState.gameOver=true;}matchState[scoreKey]=after;matchState.csvRows.push({matchId:matchState.matchId,date:new Date().toLocaleDateString(),legNumber:matchState.legNumber,teamName:team.name,playerName:player?player.name:"",dart1:matchState.currentPlayerDarts[0]??"",dart2:matchState.currentPlayerDarts[1]??"",dart3:matchState.currentPlayerDarts[2]??"",turnTotal:turnTotal,remainingBefore:before,remainingAfter:after,result:result});updateAll();if(result==="Win"){gameInfoEl.textContent="Leg "+matchState.legNumber+" complete. "+team.name+" wins by reaching exactly 0.";return;}if(result==="Bust"){gameInfoEl.textContent="Bust. Score returns to "+before+" and the turn passes.";}advanceTurn();}
+function safeFilePart(text){return String(text).replace(/[^a-z0-9]/gi,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");}
+exportCsvBtn.addEventListener("click",()=>{const header=["MatchID","Date","LegNumber","TeamName","PlayerName","Dart1","Dart2","Dart3","TurnTotal","RemainingBefore","RemainingAfter","Result"];const lines=[header.join(",")];matchState.csvRows.forEach(r=>{lines.push([r.matchId,'"'+r.date+'"',r.legNumber,'"'+r.teamName+'"','"'+r.playerName+'"',r.dart1,r.dart2,r.dart3,r.turnTotal,r.remainingBefore,r.remainingAfter,'"'+r.result+'"'].join(","));});const csv=lines.join("\n");csvArea.value=csv;const today=new Date().toISOString().slice(0,10);const teamA=safeFilePart(matchState.teamA?matchState.teamA.name:"TeamA");const teamB=safeFilePart(matchState.teamB?matchState.teamB.name:"TeamB");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=today+"_"+teamA+"_vs_"+teamB+"_601_legs.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);});
+</script>
+</body>
+</html>
+
