@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dart League Scoring App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #eee;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+#leftPanel {
+    width: 360px;
+    background: #222;
+    padding: 15px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    border-right: 3px solid #444;
+}
+#mainPanel {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #151515;
+    overflow-y: auto;
+}
+h2, h3 {
+    margin: 8px 0;
+}
+select, button, input {
+    margin: 4px 0;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+input {
+    width: 95%;
+    box-sizing: border-box;
+    background: #111;
+    color: #eee;
+    border: 1px solid #555;
+}
+.name-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+/* --- GIANT SCOREBOARD CSS --- */
+.scoreboard {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 10px;
+    flex-grow: 1;
+    max-height: 60%;
+}
+.team-score {
+    flex: 1;
+    background: #000;
+    border: 4px solid #444;
+    text-align: center;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+.team-score h2 {
+    font-size: 32px;
+    margin: 0 0 10px 0;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.team-score .score {
+    font-size: 120px; /* Massively increased from 48px */
+    font-weight: 900;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+.active-team {
+    border-color: #0f0;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+    background: #051505;
+}
+.active-team h2 {
+    color: #0f0;
+}
+.active-team .score {
+    color: #0f0;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+/* --- PLAYER PROFILE CARDS --- */
+.players {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 15px;
+}
+.player-card {
+    flex: 1;
+    border: 2px solid #444;
+    padding: 12px;
+    background: #1c1c1c;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+.player-card h4 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 4px;
+}
+.player-card .team-label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+}
+.stats {
+    font-size: 13px;
+    line-height: 1.4;
+}
+.stats span {
+    font-weight: bold;
+    color: #fff;
+}
+#numericPad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 5px;
+    margin-top: 10px;
+}
+#numericPad button {
+    font-size: 16px;
+    padding: 12px;
+    background: #333;
+    color: #eee;
+    border: 1px solid #555;
+    cursor: pointer;
+    border-radius: 4px;
+}
+#numericPad button:hover {
+    background: #555;
+}
+#currentInput, #roundInfo {
+    font-size: 18px;
+    margin-top: 6px;
+    text-align: center;
+    padding: 6px;
+    background: #000;
+    border: 1px solid #555;
+    font-weight: bold;
+}
+#csvArea {
+    width: 100%;
+    height: 100px;
+    margin-top: 8px;
+    font-size: 11px;
+}
+#debugLog {
+    background: #111;
+    border: 1px dashed #f39c12;
+    color: #f39c12;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    margin-top: 15px;
+    border-radius: 4px;
+}
+#gameInfo {
+    background: #222;
+    padding: 12px;
+    border-left: 5px solid #0f0;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<div id="leftPanel">
+    <div>
+        <h3>Setup</h3>
+        <label>Team A:<select id="teamASelect" style="width:100%"><option value="">Loading...</option></select></label><br>
+        <div class="name-grid">
+            <input id="teamAPlayer1" placeholder="Team A Player 1">
+            <input id="teamAPlayer2" placeholder="Team A Player 2">
+            <input id="teamAPlayer3" placeholder="Team A Player 3">
+        </div>
+        <label>Team B:<select id="teamBSelect" style="width:100%"><option value="">Loading...</option></select></label><br>
+        <div class="name-grid">
+            <input id="teamBPlayer1" placeholder="Team B Player 1">
+            <input id="teamBPlayer2" placeholder="Team B Player 2">
+            <input id="teamBPlayer3" placeholder="Team B Player 3">
+        </div>
+        <label>First Leg Starter:<select id="firstStarter" style="width:100%"><option value="A">Team A - closest to bull</option><option value="B">Team B - closest to bull</option></select></label><br>
+        <button id="randomTeamsBtn" style="width:100%">Random Teams</button>
+        <button id="startMatchBtn" style="width:100%; background: #27ae60; color: white; border: none; font-weight: bold;">Start 601 Leg</button>
+        <button id="nextLegBtn" style="width:100%">Start Next Leg</button>
+        
+        <h3>Numeric Pad</h3>
+        <div id="currentInput">Dart Score: 0</div>
+        <div id="roundInfo">Turn Total: 0 / Darts: 0 of 3</div>
+        <div id="numericPad">
+            <button data-val="1">1</button><button data-val="2">2</button><button data-val="3">3</button>
+            <button data-val="4">4</button><button data-val="5">5</button><button data-val="6">6</button>
+            <button data-val="7">7</button><button data-val="8">8</button><button data-val="9">9</button>
+            <button data-val="0">0</button><button data-val="25">Outer (25)</button><button data-val="50">Inner (50)</button>
+            <button id="clearBtn">Clear</button><button id="doubleBtn">Double</button><button id="tripleBtn">Triple</button>
+            <button id="enterBtn" style="grid-column: span 3; background: #2980b9; color: white; font-weight: bold;">Enter Dart</button>
+        </div>
+        <div id="controls"><button id="exportCsvBtn" style="width:100%; margin-top: 10px;">Export CSV</button></div>
+        <h3>CSV Data</h3>
+        <textarea id="csvArea" readonly>Initializing data fetch...</textarea>
+    </div>
+    <div id="debugLog">Diagnostic Log: Initializing...</div>
+</div>
+
+<div id="mainPanel">
+    <div id="gameInfo">Start a leg to begin.</div>
+    
+    <div class="scoreboard">
+        <div class="team-score" id="teamABlock">
+            <h2 id="teamAName">Team A</h2>
+            <div class="score" id="teamAScore">601</div>
+        </div>
+        <div class="team-score" id="teamBBlock">
+            <h2 id="teamBName">Team B</h2>
+            <div class="score" id="teamBScore">601</div>
+        </div>
+    </div>
+    
+    <div>
+        <h3>Players</h3>
+        <div class="players">
+            <div class="player-card" id="playerCard0">
+                <h4 id="playerName0">Player 1</h4>
+                <div class="team-label">Team: <span id="playerTeam0">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts0">0</span><br>Total Score: <span id="playerTotal0">0</span><br>Avg / Dart: <span id="playerAvg0">0.00</span></div>
+            </div>
+            <div class="player-card" id="playerCard1">
+                <h4 id="playerName1">Player 2</h4>
+                <div class="team-label">Team: <span id="playerTeam1">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts1">0</span><br>Total Score: <span id="playerTotal1">0</span><br>Avg / Dart: <span id="playerAvg1">0.00</span></div>
+            </div>
+            <div class="player-card" id="playerCard2">
+                <h4 id="playerName2">Player 3</h4>
+                <div class="team-label">Team: <span id="playerTeam2">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts2">0</span><br>Total Score: <span id="playerTotal2">0</span><br>Avg / Dart: <span id="playerAvg2">0.00</span></div>
+            </div>
+        </div>
+        <div class="players">
+            <div class="player-card" id="playerCard3">
+                <h4 id="playerName3">Player 4</h4>
+                <div class="team-label">Team: <span id="playerTeam3">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts3">0</span><br>Total Score: <span id="playerTotal3">0</span><br>Avg / Dart: <span id="playerAvg3">0.00</span></div>
+            </div>
+            <div class="player-card" id="playerCard4">
+                <h4 id="playerName4">Player 5</h4>
+                <div class="team-label">Team: <span id="playerTeam4">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts4">0</span><br>Total Score: <span id="playerTotal4">0</span><br>Avg / Dart: <span id="playerAvg4">0.00</span></div>
+            </div>
+            <div class="player-card" id="playerCard5">
+                <h4 id="playerName5">Player 6</h4>
+                <div class="team-label">Team: <span id="playerTeam5">-</span></div>
+                <div class="stats">Darts Thrown: <span id="playerDarts5">0</span><br>Total Score: <span id="playerTotal5">0</span><br>Avg / Dart: <span id="playerAvg5">0.00</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const NUM_TEAMS=30,PLAYERS_PER_TEAM=3,STARTING_SCORE=601;
+const teams=[];
+
+// Target Cloud Dataset URL
+const cloudCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQukbUqO2QUQhS6YYXcow0bqF4fV-UEYyb7tWn07LTUPs9F0ntJ-mV6Zp-v0lyVIr1uAzDQwpczfybS/pub?output=csv';
+
+const teamASelect=document.getElementById("teamASelect"),teamBSelect=document.getElementById("teamBSelect"),firstStarterSelect=document.getElementById("firstStarter"),randomTeamsBtn=document.getElementById("randomTeamsBtn"),startMatchBtn=document.getElementById("startMatchBtn"),nextLegBtn=document.getElementById("nextLegBtn"),teamANameEl=document.getElementById("teamAName"),teamBNameEl=document.getElementById("teamBName"),teamAScoreEl=document.getElementById("teamAScore"),teamBScoreEl=document.getElementById("teamBScore"),teamABlock=document.getElementById("teamABlock"),teamBBlock=document.getElementById("teamBBlock"),gameInfoEl=document.getElementById("gameInfo"),currentInputEl=document.getElementById("currentInput"),roundInfoEl=document.getElementById("roundInfo"),numericPad=document.getElementById("numericPad"),clearBtn=document.getElementById("clearBtn"),doubleBtn=document.getElementById("doubleBtn"),tripleBtn=document.getElementById("tripleBtn"),enterBtn=document.getElementById("enterBtn"),exportCsvBtn=document.getElementById("exportCsvBtn"),csvArea=document.getElementById("csvArea"),debugLog=document.getElementById("debugLog");
+const teamANameInputs=[document.getElementById("teamAPlayer1"),document.getElementById("teamAPlayer2"),document.getElementById("teamAPlayer3")];
+const teamBNameInputs=[document.getElementById("teamBPlayer1"),document.getElementById("teamBPlayer2"),document.getElementById("teamBPlayer3")];
+let matchState={teamA:null,teamB:null,legNumber:1,teamAScore:STARTING_SCORE,teamBScore:STARTING_SCORE,currentTeam:"A",firstStarter:"A",currentPlayerInTeamIndex:0,currentPlayerDarts:[],players:[],csvRows:[],matchId:Date.now(),gameOver:false};
+let currentInput=0,multiplier=1;
+
+function logDebug(message, isError = false) {
+    debugLog.textContent = "Status: " + message;
+    debugLog.style.borderColor = isError ? "#e74c3c" : "#2ecc71";
+    debugLog.style.color = isError ? "#e74c3c" : "#2ecc71";
+}
+
+function populateTeamSelects(){
+    teamASelect.innerHTML = "";
+    teamBSelect.innerHTML = "";
+    if(teams.length === 0) {
+        const opt = document.createElement("option");
+        opt.textContent = "No teams found";
+        teamASelect.appendChild(opt.cloneNode(true));
+        teamBSelect.appendChild(opt.cloneNode(true));
+        return;
+    }
+    teams.forEach(team=>{
+        const optA=document.createElement("option");optA.value=team.id;optA.textContent=team.name;teamASelect.appendChild(optA);
+        const optB=document.createElement("option");optB.value=team.id;optB.textContent=team.name;teamBSelect.appendChild(optB);
+    });
+    if(teams.length > 1) teamBSelect.selectedIndex = 1;
+    updateInputsFromDropdowns();
+}
+
+function updateInputsFromDropdowns() {
+    const tA = teams.find(t => t.id === parseInt(teamASelect.value, 10));
+    const tB = teams.find(t => t.id === parseInt(teamBSelect.value, 10));
+    
+    teamANameInputs.forEach(input => input.value = "");
+    if(tA) tA.players.forEach((p, i) => { if(teamANameInputs[i]) teamANameInputs[i].value = p.name; });
+    
+    teamBNameInputs.forEach(input => input.value = "");
+    if(tB) tB.players.forEach((p, i) => { if(teamBNameInputs[i]) teamBNameInputs[i].value = p.name; });
+}
+
+teamASelect.addEventListener("change", updateInputsFromDropdowns);
+teamBSelect.addEventListener("change", updateInputsFromDropdowns);
+
+function generateLocalFallbackTeams(){
+    teams.length = 0;
+    for(let t=1;t<=NUM_TEAMS;t++){
+        const team={id:t,name:"Team "+t,players:[]};
+        for(let p=1;p<=PLAYERS_PER_TEAM;p++){
+            team.players.push({id:(t-1)*PLAYERS_PER_TEAM+p,name:"T"+t+" P"+p});
+        }
+        teams.push(team);
+    }
+    populateTeamSelects();
+    csvArea.value = "Notice: Google Sheets offline. Loaded fallback mock team list.";
+}
+
+async function fetchCloudTeams() {
+    logDebug("Fetching from Google Sheets...");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    try {
+        if (typeof Papa === 'undefined') throw new Error("PapaParse script is missing!");
+
+        const response = await fetch(cloudCsvUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error("HTTP Status Error: " + response.status);
+        const csvText = await response.text();
+
+        if(csvText.trim().startsWith("<!DOCTYPE html>")) throw new Error("Google returned HTML instead of a CSV. Check 'Publish to Web' config.");
+
+        Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                teams.length = 0;
+                let tId = 1;
+
+                if (!results.data || results.data.length === 0) {
+                    throw new Error("CSV parsed successfully but contained 0 rows of data.");
+                }
+
+                const rawHeaders = Object.keys(results.data[0]);
+
+                results.data.forEach(row => {
+                    const cleanRow = {};
+                    for (let key in row) {
+                        if (row.hasOwnProperty(key)) {
+                            const normalizedKey = key.toString().toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+                            cleanRow[normalizedKey] = row[key] ? row[key].toString().trim() : "";
+                        }
+                    }
+
+                    let teamName = cleanRow['teamnames'] || cleanRow['teamname'] || cleanRow['team'] || "";
+                    if (!teamName) return; 
+                    
+                    if (!isNaN(teamName) && teamName !== "") {
+                        teamName = "Team " + teamName;
+                    }
+
+                    const p1 = cleanRow['player1'] || "P1";
+                    const p2 = cleanRow['player2'] || "P2";
+                    const p3 = cleanRow['player3'] || "P3";
+
+                    teams.push({
+                        id: tId++,
+                        name: teamName,
+                        players: [{ id: (tId*10)+1, name: p1 }, { id: (tId*10)+2, name: p2 }, { id: (tId*10)+3, name: p3 }]
+                    });
+                });
+                
+                populateTeamSelects();
+                csvArea.value = "Success: Player data successfully pulled from Google Sheets CSV.";
+                logDebug(`Loaded ${teams.length} teams. Headers found: [${rawHeaders.join(', ')}]`);
+            }
+        });
+    } catch (error) {
+        console.error("Cloud fetch failed:", error);
+        logDebug(`Error: ${error.message}. Loaded fallback teams.`, true);
+        generateLocalFallbackTeams();
+    }
+}
+
+function applyPlayerInputNames(team,inputList){team.players.forEach((player,index)=>{const typedName=inputList[index].value.trim();player.name=typedName||player.name;});}
+
+randomTeamsBtn.addEventListener("click", () => {
+    if(teams.length < 2) return;
+    const teamAIndex = Math.floor(Math.random() * teams.length);
+    let teamBIndex = Math.floor(Math.random() * teams.length);
+    while(teamBIndex === teamAIndex) { teamBIndex = Math.floor(Math.random() * teams.length); }
+    
+    teamASelect.value = String(teams[teamAIndex].id);
+    teamBSelect.value = String(teams[teamBIndex].id);
+    updateInputsFromDropdowns();
+});
+
+startMatchBtn.addEventListener("click",startMatch);
+nextLegBtn.addEventListener("click",startNextLeg);
+
+function startMatch(){const teamAId=parseInt(teamASelect.value,10),teamBId=parseInt(teamBSelect.value,10);if(!teamAId||!teamBId||teamAId===teamBId){alert("Select two different teams.");return;}matchState.teamA=JSON.parse(JSON.stringify(teams.find(t=>t.id===teamAId)));matchState.teamB=JSON.parse(JSON.stringify(teams.find(t=>t.id===teamBId)));applyPlayerInputNames(matchState.teamA,teamANameInputs);applyPlayerInputNames(matchState.teamB,teamBNameInputs);matchState.matchId=Date.now();matchState.legNumber=1;matchState.firstStarter=firstStarterSelect.value;buildPlayers();startLeg(matchState.firstStarter);}
+function buildPlayers(){matchState.players=[];matchState.teamA.players.forEach(p=>matchState.players.push({team:"A",teamName:matchState.teamA.name,id:p.id,name:p.name,dartsThrown:0,totalScore:0}));matchState.teamB.players.forEach(p=>matchState.players.push({team:"B",teamName:matchState.teamB.name,id:p.id,name:p.name,dartsThrown:0,totalScore:0}));}
+function startLeg(starter){matchState.teamAScore=STARTING_SCORE;matchState.teamBScore=STARTING_SCORE;matchState.currentTeam=starter;matchState.currentPlayerInTeamIndex=0;matchState.currentPlayerDarts=[];matchState.gameOver=false;resetInput();updateAll();}
+function startNextLeg(){if(!matchState.teamA||!matchState.teamB){alert("Start the first leg first.");return;}matchState.legNumber+=1;matchState.firstStarter=matchState.firstStarter==="A"?"B":"A";startLeg(matchState.firstStarter);}
+function getCurrentTeamScoreKey(){return matchState.currentTeam==="A"?"teamAScore":"teamBScore";}
+function getCurrentTeam(){return matchState.currentTeam==="A"?matchState.teamA:matchState.teamB;}
+function getCurrentTeamPlayers(){return matchState.players.filter(p=>p.team===matchState.currentTeam);}
+function getCurrentPlayer(){const teamPlayers=getCurrentTeamPlayers();return teamPlayers[matchState.currentPlayerInTeamIndex]||teamPlayers[0];}
+function advanceTurn(){matchState.currentTeam=matchState.currentTeam==="A"?"B":"A";matchState.currentPlayerInTeamIndex=(matchState.currentPlayerInTeamIndex+1)%PLAYERS_PER_TEAM;matchState.currentPlayerDarts=[];resetInput();updateAll();}
+function updateAll(){updateScoreboard();updatePlayerCards();updateGameInfo();updateRoundInfo();}
+function updateScoreboard(){teamANameEl.textContent=matchState.teamA?matchState.teamA.name:"Team A";teamBNameEl.textContent=matchState.teamB?matchState.teamB.name:"Team B";teamAScoreEl.textContent=matchState.teamAScore;teamBScoreEl.textContent=matchState.teamBScore;teamABlock.classList.toggle("active-team",matchState.currentTeam==="A"&&!matchState.gameOver);teamBBlock.classList.toggle("active-team",matchState.currentTeam==="B"&&!matchState.gameOver);
+const currentPlayer=getCurrentPlayer();if(currentPlayer&&!matchState.gameOver){if(matchState.currentTeam==="A"){teamABlock.style.borderColor="#0f0";teamBBlock.style.borderColor="#444";}else{teamBBlock.style.borderColor="#0f0";teamABlock.style.borderColor="#444";}}}
+function updatePlayerCards(){for(let i=0;i<6;i++){const player=matchState.players[i];const nameEl=document.getElementById("playerName"+i),teamEl=document.getElementById("playerTeam"+i),dartsEl=document.getElementById("playerDarts"+i),totalEl=document.getElementById("playerTotal"+i),avgEl=document.getElementById("playerAvg"+i),cardEl=document.getElementById("playerCard"+i);if(player){nameEl.textContent=player.name;teamEl.textContent=player.teamName;dartsEl.textContent=player.dartsThrown;totalEl.textContent=player.totalScore;avgEl.textContent=player.dartsThrown>0?(player.totalScore/player.dartsThrown).toFixed(2):"0.00";const currentPlayer=getCurrentPlayer();if(currentPlayer&&player.id===currentPlayer.id&&!matchState.gameOver){cardEl.style.borderColor="#0f0";cardEl.style.background="#051505";}else{cardEl.style.borderColor="#444";cardEl.style.background="#1c1c1c";}}else{nameEl.textContent="Player "+(i+1);teamEl.textContent="-";dartsEl.textContent="0";totalEl.textContent="0";avgEl.textContent="0.00";cardEl.style.borderColor="#444";cardEl.style.background="#1c1c1c";}}}
+function updateGameInfo(){if(matchState.gameOver)return;const team=getCurrentTeam();const player=getCurrentPlayer();gameInfoEl.textContent=team&&player?"Leg "+matchState.legNumber+" | "+team.name+" | Player: "+player.name+" is throwing":"Start a leg to begin.";}
+function updateRoundInfo(){const turnTotal=matchState.currentPlayerDarts.reduce((sum,d)=>sum+d.val,0);roundInfoEl.textContent="Turn Total: "+turnTotal+" / Darts: "+matchState.currentPlayerDarts.length+" of 3";}
+function resetInput(){currentInput=0;multiplier=1;updateInputDisplay();}
+function updateInputDisplay(){const displayVal=currentInput*multiplier;currentInputEl.textContent="Dart Score: "+displayVal+(multiplier===2?" (Double)":multiplier===3?" (Triple)":"");}
+numericPad.addEventListener("click",e=>{const val=e.target.getAttribute("data-val");if(!val)return;const num=parseInt(val,10);if(num===25||num===50){currentInput=num;multiplier=1;}else{currentInput=currentInput*10+num;}updateInputDisplay();});
+clearBtn.addEventListener("click",resetInput);
+doubleBtn.addEventListener("click",()=>{if(currentInput===25||currentInput===50)return;multiplier=2;updateInputDisplay();});
+tripleBtn.addEventListener("click",()=>{if(currentInput===25||currentInput===50)return;multiplier=3;updateInputDisplay();});
+enterBtn.addEventListener("click",recordDart);
+function recordDart(){if(matchState.gameOver||!matchState.teamA||!matchState.teamB)return;if(matchState.currentPlayerDarts.length>=3){alert("This turn already has 3 darts recorded.");return;}const dartScore=currentInput*multiplier;if(dartScore>180){alert("Entered dart total cannot be greater than 180.");resetInput();return;}if(dartScore<0){alert("Enter a valid dart score.");resetInput();return;}let dartId="";if(currentInput===50)dartId="Inner Bull";else if(currentInput===25)dartId="Outer Bull";else if(currentInput===0)dartId="Miss";else if(multiplier===1)dartId="Single "+currentInput;else if(multiplier===2)dartId="Double "+currentInput;else if(multiplier===3)dartId="Triple "+currentInput;matchState.currentPlayerDarts.push({val:dartScore,id:dartId});const player=getCurrentPlayer();if(player){player.dartsThrown+=1;player.totalScore+=dartScore;}resetInput();updateAll();if(matchState.currentPlayerDarts.length===3){finishTurn();}}
+function finishTurn(){const player=getCurrentPlayer();const team=getCurrentTeam();const scoreKey=getCurrentTeamScoreKey();const before=matchState[scoreKey];const turnTotal=matchState.currentPlayerDarts.reduce((sum,d)=>sum+d.val,0);let after=before-turnTotal;let result="";if(after<0||after===1){after=before;result="Bust";}else if(after===0){result="Win";matchState.gameOver=true;}matchState[scoreKey]=after;matchState.csvRows.push({matchId:matchState.matchId,date:new Date().toLocaleDateString(),legNumber:matchState.legNumber,teamName:team.name,playerName:player?player.name:"",dart1:matchState.currentPlayerDarts[0]?matchState.currentPlayerDarts[0].id:"",dart2:matchState.currentPlayerDarts[1]?matchState.currentPlayerDarts[1].id:"",dart3:matchState.currentPlayerDarts[2]?matchState.currentPlayerDarts[2].id:"",turnTotal:turnTotal,remainingBefore:before,remainingAfter:after,result:result});updateAll();if(result==="Win"){gameInfoEl.textContent="Leg "+matchState.legNumber+" complete. "+team.name+" wins by reaching exactly 0.";return;}if(result==="Bust"){gameInfoEl.textContent="Bust. Score returns to "+before+" and the turn passes.";}advanceTurn();}
+function safeFilePart(text){return String(text).replace(/[^a-z0-9]/gi,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");}
+exportCsvBtn.addEventListener("click",()=>{const header=["MatchID","Date","LegNumber","TeamName","PlayerName","Dart1","Dart2","Dart3","TurnTotal","RemainingBefore","RemainingAfter","Result"];const lines=[header.join(",")];matchState.csvRows.forEach(r=>{lines.push([r.matchId,'"'+r.date+'"',r.legNumber,'"'+r.teamName+'"','"'+r.playerName+'"','"'+r.dart1+'"','"'+r.dart2+'"','"'+r.dart3+'"',r.turnTotal,r.remainingBefore,r.remainingAfter,'"'+r.result+'"'].join(","));});const csv=lines.join("\n");csvArea.value=csv;const today=new Date().toISOString().slice(0,10);const teamA=safeFilePart(matchState.teamA?matchState.teamA.name:"TeamA");const teamB=safeFilePart(matchState.teamB?matchState.teamB.name:"TeamB");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=today+"_"+teamA+"_vs_"+teamB+"_601_legs.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);});
+
+window.onload = fetchCloudTeams;
+</script>
+</body>
+</html>
