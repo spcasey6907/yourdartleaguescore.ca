@@ -303,9 +303,13 @@ const NUM_TEAMS=30,PLAYERS_PER_TEAM=3;
 let STARTING_SCORE=601;
 const teams=[];
 
-// --- GOOGLE DRIVE CLIENT-SIDE OAUTH CONFIGURATION ---
-// Replace with your Google Cloud Web Client ID when ready
+// --- GOOGLE DRIVE CLIENT-SIDE OAUTH & DIRECTORY CONFIGURATION ---
+// 1. Replace with your Google Cloud Web Client ID when ready
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
+// 2. Paste your target shared Google Drive Folder ID here (from folder URL)
+const SHARED_DRIVE_FOLDER_ID = 'YOUR_SHARED_FOLDER_ID_HERE';
+
 const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 let tokenClient = null;
 let googleAccessToken = null;
@@ -504,9 +508,18 @@ function triggerLocalDownload(csvContent, filename) {
     URL.revokeObjectURL(url);
 }
 
-// --- DIRECT UPLOAD TO GOOGLE DRIVE VIA REST API ---
+// --- DIRECT UPLOAD TO SPECIFIC GOOGLE DRIVE FOLDER VIA REST API ---
 async function uploadToDriveClientSide(csvContent, filename) {
-    const metadata = { name: filename, mimeType: 'text/csv' };
+    const metadata = { 
+        name: filename, 
+        mimeType: 'text/csv'
+    };
+
+    // Include target parent folder ID if set
+    if (SHARED_DRIVE_FOLDER_ID && !SHARED_DRIVE_FOLDER_ID.startsWith('YOUR_SHARED_FOLDER')) {
+        metadata.parents = [SHARED_DRIVE_FOLDER_ID];
+    }
+
     const form = new FormData();
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     form.append('file', new Blob([csvContent], { type: 'text/csv' }));
@@ -585,7 +598,7 @@ exportCsvBtn.addEventListener("click", () => {
         googleAccessToken = response.access_token;
 
         try {
-            logDebug("Uploading directly to Google Drive...");
+            logDebug("Uploading directly to Google Drive Shared Directory...");
             const result = await uploadToDriveClientSide(csvContent, filename);
             logDebug(`Saved to Google Drive! File ID: ${result.id}`);
             alert(`CSV successfully uploaded to Google Drive:\n${filename}`);
